@@ -35,10 +35,7 @@ end
      
 P_ZF = conj(H) / (H.' * conj(H));
 P_MF = conj(H);
-% Sem normalização, a operação conj(H) pode resultar em valores de sinal muito grandes, 
-% especialmente se algum vetor de coluna de H tiver um valor elevado 
-% Isso amplifica não apenas o sinal desejado, mas também o ruído adicionado, 
-% levando a uma taxa de erro de bits (BER) mais alta.
+
 
 x_ZF = P_ZF * s.';
 x_MF = P_MF * s.';
@@ -67,8 +64,6 @@ end
 % ------------------------------------------------------------------------------ %
 % BIT ERROR RATE (BER) CALCULATION
 % ------------------------------------------------------------------------------ %
-
-noise_variance = 10^-3;
 
 received_signal_ZF = s_received_ZF;
 received_signal_MF = s_received_MF;
