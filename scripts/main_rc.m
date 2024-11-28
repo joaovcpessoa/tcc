@@ -44,7 +44,7 @@ SNR = -10:20;
 N_SNR = length(SNR);
 snr = 10.^(SNR/10);
 
-N_PRE = 4;
+N_PRE = 5;
 BER_ZF = zeros(1, N_SNR, N_PRE);
 BER_MF = zeros(1, N_SNR, N_PRE);
 BER_MMSE = zeros(1, N_SNR, N_PRE);
@@ -113,7 +113,6 @@ v_normalized = v./sqrt(Pv);
 % Loop principal para SNR e amplificadores
 for snr_idx = 1:N_SNR
     for pre_idx = 1:N_PRE
-        % ZF
         y_ZF = H.' * amplifiers{pre_idx}(sqrt(snr(snr_idx)) * precoder_ZF * s.') + v_normalized; 
         y_MF = H.' * amplifiers{pre_idx}(sqrt(snr(snr_idx)) * precoder_MF * s.') + v_normalized;
         y_MMSE = H.' * amplifiers{pre_idx}(sqrt(snr(snr_idx)) * precoder_MMSE(:,:,snr_idx) * s.') + v_normalized; 
@@ -157,13 +156,14 @@ set(gcf,'position',[0 0 800 600]);
 for pre_idx = 1:N_PRE
     semilogy(SNR, BER_ZF(:,pre_idx),  'o-', 'LineWidth', linewidth, 'MarkerSize', markersize, 'Color', colors(pre_idx,:)); 
     hold on;
-    semilogy(SNR, BER_MF(:,pre_idx),  's-', 'LineWidth', linewidth, 'MarkerSize', markersize, 'Color', colors(pre_idx+1,:));
-    semilogy(SNR, BER_MMSE(:,pre_idx),'v-', 'LineWidth', linewidth, 'MarkerSize', markersize, 'Color', colors(pre_idx+2,:));
+    %semilogy(SNR, BER_MF(:,pre_idx),  's-', 'LineWidth', linewidth, 'MarkerSize', markersize, 'Color', colors(pre_idx+1,:));
+    %semilogy(SNR, BER_MMSE(:,pre_idx),'v-', 'LineWidth', linewidth, 'MarkerSize', markersize, 'Color', colors(pre_idx+2,:));
 end
 
 xlabel('SNR (dB)', 'FontName', fontname, 'FontSize', fontsize);
 ylabel('BER', 'FontName', fontname, 'FontSize', fontsize);
-legend({'ZF-1', 'ZF-2', 'ZF-3', 'ZF-4', 'MF-1', 'MF-2', 'MF-3', 'MF-4', 'MMSE-1', 'MMSE-2', 'MMSE-3', 'MMSE-4'}, 'Location', 'northeast', 'FontSize', fontsize);
+legend({'ZF_1', 'ZF_2', 'ZF_3', 'ZF_4', 'ZF_5', 'MF_1', 'MF_2', 'MF_3', 'MF_4', 'MF_5', 'MMSE_1', 'MMSE_2', 'MMSE_3', 'MMSE_4', 'MMSE_5'}, 'Location', 'northeast', 'FontSize', fontsize);
+% legend({'1-IDEAL', '2-CLIPPING', '3-TWT', '4-SOLID STATE', '5-POLINOMIAL'}, 'Location', 'northeast', 'FontSize', fontsize);
 legend box off
 
 set(gca, 'FontName', fontname, 'FontSize', fontsize);
