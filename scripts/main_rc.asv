@@ -44,27 +44,40 @@ SNR = -10:20;
 N_SNR = length(SNR);
 snr = 10.^(SNR/10);
 
-BER = zeros(K, N_SNR);
+N_PRE = 4;
+BER_ZF = zeros(1, N_SNR, N_PRE);
+BER_MF = zeros(1, N_SNR, N_PRE);
+BER_MMSE = zeros(1, N_SNR, N_PRE);
 
 % ####################################################################### %
 % PARÂMETROS DE MODELAGEM DAS NÃO LINEARIDADES
 % ####################################################################### %
 
-A = 5;
+A0 = 1;  % Fator de recorte
+rho = 1; % Fator de suavidade da função não linear
 
-% Amplificador de clipping ideal
-clip = @(x, A0) min(abs(x), A0) .* exp(1j * angle(x));
+% Amplificador com corte ideal
+ideal_clipping_amp = @(x, A0) min(abs(x), A0) .* exp(1j * angle(x));
 
-% Amplificador valvulado de onda progressiva
+% Amplificador TWT
+chi_A = 1;
 kappa_A = 0.25;
 chi_phi = 0.26;
 kappa_phi = 0.25;
+twt_amp1 = @(x) abs(x) .* (1 - kappa_A .* abs(x).^2) .* exp(1j * (angle(x) + chi_A .* abs(x).^2 + kappa_A .* abs(x).^4));       % AM-AM
+twt_amp2 = @(x) abs(x) .* (1 - kappa_phi .* abs(x).^2) .* exp(1j * (angle(x) + chi_phi .* abs(x).^2 + kappa_phi .* abs(x).^4)); % AM-PM
 
 % Amplificador de estado sólido
 
 
-% Polinomial
 
+solid_state_amp = @(x, A0, rho) abs(x) ./ (1 + (abs(x) / A0).^(2 * rho)).^(1 / (2 * rho)) .* exp(1j * angle(x));
+
+% Polinomial
+polinomial = @(x) x - 0.2*x.^3 + 0.05*x.^5;
+
+% Amplificadores: no_amp, ideal_clipping_amp, twt_amp, solid_state_amp
+amplifiers = {@(x) x, @(x) ideal_clipping_amp(x, A0), twt_amp, solid_state_amp};
 
 % ####################################################################### %
 % MODELO DO CANAL E DEFINIÇÃO DOS PRECODIFICADORES
@@ -87,101 +100,67 @@ for snr_idx = 1:N_SNR
 end
 
 % ####################################################################### %
-% TRANSMISSÃO
+% TRANSMISSÃO E RECEPÇÃO
 % ####################################################################### %
-
-precoder_type = 'ZF'; % MF, MMSE
-
-if strcmp(precoder_type, 'ZF')
-    x = precoder_ZF * s.';
-
-elseif strcmp(precoder_type, 'MF')
-    x = precoder_MF * s.';
-
-elseif strcmp(precoder_type, 'MMSE')
-    x = zeros(M, N_BLK, N_SNR);
-    for snr_idx = 1:N_SNR
-        x(:,:,snr_idx) = precoder_MMSE(:,:,snr_idx) * s.';
-    end
-
-end
-
-% Normalização de Potência de Transmissão
-x_normalized = zeros(size(x));
-
-if strcmp(chosen_precoder, 'MMSE')
-    for m = 1:M
-        for snr_idx = 1:N_SNR
-            Px = norm(x(m, :, snr_idx))^2/size(x, 2);
-            x_normalized(m, :, snr_idx) = x(m, :, snr_idx) / sqrt(Px);
-        end
-    end
-else
-    for m = 1:M
-        Px = norm(x(m, :))^2/size(x, 2);
-        x_normalized(m, :) = x(m, :) / sqrt(Px);
-    end
-end
-
-% ####################################################################### %
-% RECEPÇÃO
-% ####################################################################### %
-
-% no_ ideal, clipping, twta, solid amp, polinomial
 
 v = sqrt(0.5) * (randn(K, N_BLK) + 1i*randn(K, N_BLK));
 Pv = vecnorm(v,2,2).^2/N_BLK;
 v_normalized = v./sqrt(Pv);
 
-bit_received = zeros(B*N_BLK, K);
-
-if strcmp(precoder_type, 'ideal')
-    x = precoder_ZF * s.';
-
-elseif strcmp(precoder_type, 'MF')
-    x = precoder_MF * s.';
-
-elseif strcmp(precoder_type, 'MMSE')
-    x = zeros(M, N_BLK, N_SNR);
-    for snr_idx = 1:N_SNR
-        x(:,:,snr_idx) = precoder_MMSE(:,:,snr_idx) * s.';
-    end
-
-end
-
+% Loop principal para SNR e amplificadores
 for snr_idx = 1:N_SNR
-
-    if strcmp(precoder_type, 'ZF')
-        y = H.' * sqrt(snr(snr_idx)) * x + v_normalized; % ideal
-        % clipping
-        % twta
-        % solid amp
-        % polinomial
+    for pre_idx = 1:N_PRE
+        % ZF
+        y_ZF = H.' * amplifiers{pre_idx}(sqrt(snr(snr_idx)) * precoder_ZF * s.') + v_normalized; 
+        y_MF = H.' * amplifiers{pre_idx}(sqrt(snr(snr_idx)) * precoder_MF * s.') + v_normalized;
+        y_MMSE = H.' * amplifiers{pre_idx}(sqrt(snr(snr_idx)) * precoder_MMSE(:,:,snr_idx) * s.') + v_normalized; 
         
-    elseif strcmp(precoder_type, 'MF')
-        y = H.' * sqrt(snr(snr_idx)) * x + v_normalized; % ideal
-        % clipping
-        % twta
-        % solid amp
-        % polinomial
+        % Demodulação e BER para ZF
+        bit_received_ZF = zeros(B*N_BLK, K);
+        for users_idx = 1:K
+            s_received_ZF = y_ZF(users_idx, :).';
+            Ps_received_ZF = norm(s_received_ZF)^2/N_BLK;
+            bit_received_ZF(:, users_idx) = qamdemod(sqrt(Ps(users_idx)/Ps_received_ZF) * s_received_ZF, M_QAM, 'OutputType', 'bit');
+        end
+        [~, BER_ZF(snr_idx, pre_idx)] = biterr(bit_received_ZF, bit_array);
 
-    elseif strcmp(precoder_type, 'MMSE')
-        y = H.' * (sqrt(snr(snr_idx)) * x(:,:,snr_idx)) + v_normalized; % ideal
-        % clipping
-        % twta
-        % solid amp
-        % polinomial
+        % Demodulação e BER para MF
+        bit_received_MF = zeros(B*N_BLK, K);
+        for users_idx = 1:K
+            s_received_MF = y_MF(users_idx, :).';
+            Ps_received_MF = norm(s_received_MF)^2/N_BLK;
+            bit_received_MF(:, users_idx) = qamdemod(sqrt(Ps(users_idx)/Ps_received_MF) * s_received_MF, M_QAM, 'OutputType', 'bit');
+        end
+        [~, BER_MF(snr_idx, pre_idx)] = biterr(bit_received_MF, bit_array);
 
-    % Demodulação e cálculo da BER
-    for users_idx = 1:K
-        s_received = y(users_idx, :).';
-        Ps_received = norm(s_received)^2/N_BLK;
-        bit_received(:, users_idx) = qamdemod(sqrt(Ps(users_idx)/Ps_received) * s_received, M_QAM, 'OutputType', 'bit');
+        % Demodulação e BER para MMSE
+        bit_received_MMSE = zeros(B*N_BLK, K);
+        for users_idx = 1:K
+            s_received_MMSE = y_MMSE(users_idx, :).';
+            Ps_received_MMSE = norm(s_received_MMSE)^2/N_BLK;
+            bit_received_MMSE(:, users_idx) = qamdemod(sqrt(Ps(users_idx)/Ps_received_MMSE) * s_received_MMSE, M_QAM, 'OutputType', 'bit');
+        end
+        [~, BER_MMSE(snr_idx, pre_idx)] = biterr(bit_received_MMSE, bit_array);
     end
-
-    [~, BER(snr_idx)] = biterr(bit_received, bit_array);
 end
 
 % ####################################################################### %
 % PLOTAGEM
 % ####################################################################### %
+
+figure;
+set(gcf,'position',[0 0 800 600]);
+
+for pre_idx = 1:N_PRE
+    semilogy(SNR, BER_ZF(:,pre_idx),  'o-', 'LineWidth', linewidth, 'MarkerSize', markersize, 'Color', colors(pre_idx,:)); 
+    hold on;
+    semilogy(SNR, BER_MF(:,pre_idx),  's-', 'LineWidth', linewidth, 'MarkerSize', markersize, 'Color', colors(pre_idx+1,:));
+    semilogy(SNR, BER_MMSE(:,pre_idx),'v-', 'LineWidth', linewidth, 'MarkerSize', markersize, 'Color', colors(pre_idx+2,:));
+end
+
+xlabel('SNR (dB)', 'FontName', fontname, 'FontSize', fontsize);
+ylabel('BER', 'FontName', fontname, 'FontSize', fontsize);
+legend({'ZF-1', 'ZF-2', 'ZF-3', 'ZF-4', 'MF-1', 'MF-2', 'MF-3', 'MF-4', 'MMSE-1', 'MMSE-2', 'MMSE-3', 'MMSE-4'}, 'Location', 'northeast', 'FontSize', fontsize);
+legend box off
+
+set(gca, 'FontName', fontname, 'FontSize', fontsize);
