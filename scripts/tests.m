@@ -221,9 +221,9 @@ set(gca, 'FontName', fontname, 'FontSize', fontsize);
 
 % Salvando imagem
 if savefig == 1
-    saveas(gcf,'ber','fig');
-    saveas(gcf,'ber','png');
-    saveas(gcf,'ber','epsc2');
+    saveas(gcf,[root_save 'ber'],'fig');
+    saveas(gcf,[root_save 'ber'],'png');
+    saveas(gcf,[root_save 'ber'],'epsc2');
 end
 
 % ####################################################################### %
