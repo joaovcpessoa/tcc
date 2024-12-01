@@ -25,6 +25,7 @@ colors = [0.0000 0.0000 0.0000;
           0.6350 0.0780 0.1840];
 
 savefig   = 1;
+addpath('./scripts/functions/');
 root_save = 'C:\Users\joaov_zm1q2wh\OneDrive\Code\github\tcc\images\';
 
 % ####################################################################### %
@@ -43,28 +44,6 @@ M_QAM = 2^B;
 SNR = -10:20;
 N_SNR = length(SNR);
 snr = 10.^(SNR/10);
-
-% ####################################################################### %
-% PARÂMETROS DE MODELAGEM DAS NÃO LINEARIDADES
-% ####################################################################### %
-
-% DESCREVER MELHOR ESSA VARIÁVEL
-A = 5;
-
-% Amplificador de clipping ideal
-
-clip = @(x, A0) min(abs(x), A0) .* exp(1j * angle(x));
-
-% Amplificador valvulado de onda progressiva
-kappa_A = 0.25;
-chi_phi = 0.26;
-kappa_phi = 0.25;
-
-% Amplificador de estado sólido
-
-
-% Polinomial
-
 
 % ####################################################################### %
 % MODELO DE TRANSMISSÃO (DOWNLINK)
@@ -142,9 +121,9 @@ v_normalized = v./sqrt(Pv);
 bit_received = zeros(B*N_BLK, K);
 
 for snr_idx = 1:N_SNR
-    if strcmp(chosen_precoder, 'ZF')
+    if strcmp(chosen_precoder, 'MF')
         y = H.' * sqrt(snr(snr_idx)) * x + v_normalized; 
-    elseif strcmp(chosen_precoder, 'MF')
+    elseif strcmp(chosen_precoder, 'ZF')
         y = H.' * sqrt(snr(snr_idx)) * x + v_normalized;
     elseif strcmp(chosen_precoder, 'MMSE')
         y = H.' * (sqrt(snr(snr_idx)) * x(:,:,snr_idx)) + v_normalized; 
