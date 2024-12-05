@@ -1,5 +1,7 @@
 function precoder = compute_precoder(precoder_type, H, N_SNR, snr)
-
+    
+    [M, K] = size(H);
+    
     switch upper(precoder_type)
         case 'ZF'
             precoder = conj(H) / (H.' * conj(H));

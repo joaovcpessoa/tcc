@@ -1,7 +1,5 @@
 function x_normalized = normalize_precoded_signal(precoder, precoder_type, M, s, N_SNR)
 
-    N_BLK = size(s,1);
-    
     switch upper(precoder_type)
         case {'ZF', 'MF'}
             x = precoder * s.';

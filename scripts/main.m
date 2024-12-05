@@ -3,7 +3,7 @@
 % ####################################################################### %
 
 clear;
-close all;
+%close all;
 clc;
 
 % ####################################################################### %
@@ -24,8 +24,8 @@ colors = [0.0000 0.0000 0.0000;
           0.3010 0.7450 0.9330;
           0.6350 0.0780 0.1840];
 
-savefig = 1;
-addpath('./scripts/functions/');
+savefig = 0;
+addpath('./functions/');
 root_save = 'C:\Users\joaov_zm1q2wh\OneDrive\Code\github\tcc\images\';
 
 % ####################################################################### %
@@ -41,7 +41,7 @@ H = (randn(M, K) + 1i * randn(M, K)) / sqrt(2);
 B = 4;
 M_QAM = 2^B;
 
-SNR = -10:20;
+SNR = -10:50;
 N_SNR = length(SNR);
 snr = 10.^(SNR/10);
 
@@ -113,21 +113,28 @@ v_normalized = v./sqrt(Pv);
 % Iterar sob o A
 % Iterar sob o K
 
-BER = zeros(K, N_SNR, N_A0);
+BER = zeros(K, N_SNR, N_AMP, N_A0);
 
 for snr_idx = 1:N_SNR
     for a_idx = 1:N_A0
-        y = H.' * amplifier(sqrt(snr(snr_idx)) * x_normalized, amplifier_type, a_idx) + v_normalized;
+        switch upper(precoder_type)
+            case {'ZF', 'MF'}
+               y = H.' * amplifier(sqrt(snr(snr_idx)) * x_normalized, amplifier_type, a_idx) + v_normalized;
+            case 'MMSE'
+               y = H.' * amplifier(sqrt(snr(snr_idx)) * x_normalized(:, :, snr_idx), amplifier_type, a_idx) + v_normalized;
+        end
         bit_received = zeros(B*N_BLK, K);
 
         for users_idx = 1:K
             s_received = y(users_idx, :).';
             Ps_received = norm(s_received)^2/N_BLK;
             bit_received(:, users_idx) = qamdemod(sqrt(Ps(users_idx)/Ps_received) * s_received, M_QAM, 'OutputType', 'bit');
-            [~, BER(users_idx, snr_idx, a_idx)] = biterr(bit_received, bit_array);
+            [~, BER(users_idx, snr_idx, a_idx)] = biterr(bit_received(:, users_idx), bit_array(:, users_idx));
         end
     end
 end
+
+save('ber_zf.mat','BER','y');
 
 % ####################################################################### %
 %% GRÁFICOS
@@ -138,7 +145,7 @@ figure;
 set(gcf,'position',[0 0 800 600]);
 
 for a_idx = 1:N_A0
-    semilogy(SNR, BER(:,:,a_idx), 'o-', 'LineWidth', linewidth, 'MarkerSize', markersize, 'Color', colors(a_idx,:));
+    semilogy(SNR, mean(BER(:,:,a_idx),1), 'o-', 'LineWidth', linewidth, 'MarkerSize', markersize, 'Color', colors(a_idx,:));
     hold on;
 end
 
