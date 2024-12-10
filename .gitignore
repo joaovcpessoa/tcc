@@ -1,1 +1,4 @@
 images/
+*.fig
+*.png
+*.epsc2
