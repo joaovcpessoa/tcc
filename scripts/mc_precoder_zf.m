@@ -25,7 +25,7 @@ N_A0 = 5;
 N_AMP = 4;
 
 A0 = [0.5, 1.0, 1.5, 2.0, 2.5];
-precoder_type = 'MF';
+precoder_type = 'ZF';
 amplifiers_type = {'IDEAL', 'CLIP', 'TWT', 'SS'};
 
 y = zeros(K, N_BLK, N_SNR, N_AMP, N_A0, N_MC);
@@ -56,7 +56,7 @@ for mc_idx = 1:N_MC
                 a0 = A0(a_idx);
                 current_amp_type = amplifiers_type{amp_idx};
 
-                y(:,:,snr_idx, amp_idx, a_idx, mc_idx) = H.' * amplifier(sqrt(snr(snr_idx)) * x_normalized, current_amp_type, a0) + v_normalized;
+                y(:, :, snr_idx, amp_idx, a_idx, mc_idx) = H.' * amplifier(sqrt(snr(snr_idx)) * x_normalized, current_amp_type, a0) + v_normalized;
                 bit_received = zeros(B * N_BLK, K);
 
                 for users_idx = 1:K
@@ -72,4 +72,4 @@ for mc_idx = 1:N_MC
     end
 end
 
-save('ber_mc_mf.mat', 'BER', 'y', 'SNR', 'N_AMP', 'N_A0', 'A0', 'precoder_type', 'amplifiers_type');
+save('ber_mc_zf.mat', 'BER', 'y', 'SNR', 'N_AMP', 'N_A0', 'A0', 'precoder_type', 'amplifiers_type');

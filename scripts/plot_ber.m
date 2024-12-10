@@ -1,3 +1,7 @@
+clear;
+close all;
+clc;
+
 % ####################################################################### %
 %% PARÂMETROS DE PLOTAGEM
 % ####################################################################### %
@@ -20,7 +24,7 @@ colors = [0.0000 0.0000 0.0000;
 
 savefig = 1;
 addpath('./functions/');
-root_save = ['C:\Users\joaov_zm1q2wh\OneDrive\Code\github\tcc\scripts\images\'];
+root_save = ['C:\Users\joaov_zm1q2wh\OneDrive\Code\github\tcc\images\'];
 
 precoder_type = 'MF';
 amplifiers_type = {'IDEAL', 'CLIP', 'TWT', 'SS'};
@@ -43,13 +47,12 @@ for amp_idx = 1:N_AMP
     ylabel('BER', 'FontName', fontname, 'FontSize', fontsize);
     title(sprintf('Amplificador: %s', amplifiers_type{amp_idx}), 'FontName', fontname, 'FontSize', fontsize);
     
-    legend(arrayfun(@(a) sprintf('A=%.1f', a), A0, 'UniformOutput', false), ...
-           'Location', 'northeast', 'FontSize', fontsize);
+    legend(arrayfun(@(a) sprintf('A=%.1f', a), A0, 'UniformOutput', false), 'Location', 'northeast', 'FontSize', fontsize);
     legend box off;
     
     set(gca, 'FontName', fontname, 'FontSize', fontsize);
 
-    graph_name = sprintf('BER_%s_%s.fig', precoder_type, amplifiers_type{amp_idx});
+    graph_name = sprintf('BER_%s_%s', precoder_type, amplifiers_type{amp_idx});
     
     if savefig == 1
         saveas(gcf,[root_save graph_name],'fig');
